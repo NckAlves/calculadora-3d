@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Impressão 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #15171b;
+    --panel: #1d2128;
+    --panel-raised: #242830;
+    --line: #2c313a;
+    --line-soft: #23262d;
+    --text: #e9e7e2;
+    --text-dim: #8d93a0;
+    --text-faint: #5c6270;
+    --filament: #ff6b35;
+    --filament-dim: #c24f23;
+    --cyan: #4ecdc4;
+    --cyan-dim: #2e8a83;
+    --danger: #ff5c5c;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 27px,
+        rgba(255,255,255,0.012) 27px,
+        rgba(255,255,255,0.012) 28px
+      );
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 56px 20px 80px;
+  }
+
+  .stage {
+    width: 100%;
+    max-width: 880px;
+  }
+
+  /* ---------- HEADER ---------- */
+  header {
+    margin-bottom: 36px;
+  }
+
+  .eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--filament);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .eyebrow::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--filament);
+    box-shadow: 0 0 0 3px rgba(255,107,53,0.15);
+  }
+
+  h1 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 38px;
+    font-weight: 600;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 15px;
+    max-width: 480px;
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  /* ---------- LAYOUT ---------- */
+  .layout {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 22px;
+    align-items: start;
+  }
+
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ---------- PANEL ---------- */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--filament-dim) 20%, var(--filament-dim) 80%, transparent);
+    opacity: 0.6;
+  }
+
+  .panel-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin: 0 0 22px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-title span.tag {
+    background: var(--line-soft);
+    color: var(--text-dim);
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+  }
+
+  /* ---------- FIELDS ---------- */
+  .field {
+    margin-bottom: 20px;
+  }
+
+  .field:last-child { margin-bottom: 0; }
+
+  .field label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 9px;
+  }
+
+  .field label .hint {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-faint);
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    background: var(--panel-raised);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .input-wrap:focus-within {
+    border-color: var(--filament);
+    box-shadow: 0 0 0 3px rgba(255,107,53,0.12);
+  }
+
+  .input-wrap input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    padding: 12px 14px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .input-wrap input::placeholder {
+    color: var(--text-faint);
+  }
+
+  .unit {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--text-dim);
+    border-left: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  /* two-column row for time */
+  .row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  /* preset fields styling */
+  .field.preset .input-wrap {
+    background: var(--line-soft);
+  }
+
+  .field.preset label .hint {
+    color: var(--cyan-dim);
+  }
+
+  .divider {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 26px 0;
+  }
+
+  .advanced-toggle {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 18px;
+    transition: color 0.15s ease;
+  }
+
+  .advanced-toggle:hover { color: var(--filament); }
+
+  .advanced-toggle .chevron {
+    transition: transform 0.2s ease;
+    font-size: 10px;
+  }
+
+  .advanced-toggle.open .chevron {
+    transform: rotate(90deg);
+  }
+
+  .advanced-fields {
+    display: none;
+  }
+
+  .advanced-fields.open {
+    display: block;
+  }
+
+  /* ---------- RESULT SIDE ---------- */
+  .result-panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 28px;
+    position: sticky;
+    top: 56px;
+  }
+
+  .result-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-bottom: 6px;
+  }
+
+  .result-value {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 46px;
+    font-weight: 700;
+    color: var(--cyan);
+    line-height: 1.1;
+    margin-bottom: 24px;
+    letter-spacing: -0.02em;
+    position: relative;
+    display: inline-block;
+  }
+
+  .result-value::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -8px;
+    height: 2px;
+    width: 100%;
+    background: repeating-linear-gradient(
+      to right,
+      var(--cyan-dim) 0, var(--cyan-dim) 6px, transparent 6px, transparent 11px
+    );
+    opacity: 0.5;
+  }
+
+  .breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 22px;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .breakdown-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+
+  .breakdown-row .k {
+    color: var(--text-dim);
+  }
+
+  .breakdown-row .v {
+    font-family: 'Space Mono', monospace;
+    color: var(--text);
+    font-size: 13px;
+  }
+
+  .breakdown-row.total .k,
+  .breakdown-row.total .v {
+    color: var(--text);
+    font-weight: 700;
+  }
+
+  .layer-meter {
+    margin-top: 4px;
+  }
+
+  .layer-meter-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .layer-bar {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--line-soft);
+    overflow: hidden;
+    display: flex;
+  }
+
+  .layer-bar .seg {
+    height: 100%;
+    transition: width 0.4s ease;
+  }
+
+  .seg-material { background: var(--filament); }
+  .seg-energy { background: var(--cyan-dim); }
+  .seg-depreciacao { background: var(--text-faint); }
+  .seg-lucro { background: var(--cyan); }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  footer {
+    margin-top: 28px;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+
+  footer a { color: var(--text-faint); }
+</style>
+</head>
+<body>
+
+<div class="stage">
+
+  <header>
+    <div class="eyebrow">Orçamento de impressão</div>
+    <h1>Calculadora de Impressão 3D</h1>
+    <p>Informe o peso da peça e o tempo de impressão para calcular o custo de material, energia e o preço final de venda.</p>
+  </header>
+
+  <div class="layout">
+
+    <!-- FORM PANEL -->
+    <div class="panel">
+      <p class="panel-title">Parâmetros da peça <span class="tag">ENTRADA</span></p>
+
+      <div class="field">
+        <label for="peso">Peso da peça <span class="hint">gramas</span></label>
+        <div class="input-wrap">
+          <input type="number" id="peso" inputmode="decimal" placeholder="0" min="0" step="0.1">
+          <span class="unit">g</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Tempo de impressão <span class="hint">para cálculo de energia</span></label>
+        <div class="row-2">
+          <div class="input-wrap">
+            <input type="number" id="horas" inputmode="numeric" placeholder="0" min="0" step="1">
+            <span class="unit">h</span>
+          </div>
+          <div class="input-wrap">
+            <input type="number" id="minutos" inputmode="numeric" placeholder="0" min="0" max="59" step="1">
+            <span class="unit">min</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <button class="advanced-toggle" id="toggleAdvanced" type="button">
+        <span class="chevron">▶</span> Ajustar valores pré-definidos
+      </button>
+
+      <div class="advanced-fields" id="advancedFields">
+
+        <div class="field preset">
+          <label for="precoMaterial">Preço do material <span class="hint">por kg</span></label>
+          <div class="input-wrap">
+            <span class="unit" style="border-left:none; border-right:1px solid var(--line);">R$</span>
+            <input type="number" id="precoMaterial" inputmode="decimal" value="140.00" min="0" step="0.01">
+            <span class="unit">/ kg</span>
+          </div>
+        </div>
+
+        <div class="field preset">
+          <label for="lucro">Margem de lucro esperada <span class="hint">% sobre o custo</span></label>
+          <div class="input-wrap">
+            <input type="number" id="lucro" inputmode="decimal" value="50" min="0" step="1">
+            <span class="unit">%</span>
+          </div>
+        </div>
+
+        <div class="field preset">
+          <label for="potencia">Potência da impressora <span class="hint">consumo médio</span></label>
+          <div class="input-wrap">
+            <input type="number" id="potencia" inputmode="decimal" value="120" min="0" step="1">
+            <span class="unit">W</span>
+          </div>
+        </div>
+
+        <div class="field preset">
+          <label for="precoKwh">Preço da energia <span class="hint">tarifa local</span></label>
+          <div class="input-wrap">
+            <span class="unit" style="border-left:none; border-right:1px solid var(--line);">R$</span>
+            <input type="number" id="precoKwh" inputmode="decimal" value="0.80" min="0" step="0.01">
+            <span class="unit">/ kWh</span>
+          </div>
+        </div>
+
+        <div class="field preset">
+          <label for="depreciacao">Depreciação da máquina <span class="hint">desgaste por hora de uso</span></label>
+          <div class="input-wrap">
+            <span class="unit" style="border-left:none; border-right:1px solid var(--line);">R$</span>
+            <input type="number" id="depreciacao" inputmode="decimal" value="0.75" min="0" step="0.01">
+            <span class="unit">/ hora</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RESULT PANEL -->
+    <div class="result-panel">
+      <p class="result-label">Preço final sugerido</p>
+      <div class="result-value" id="precoFinal">R$ 0,00</div>
+
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <span class="k">Custo do material</span>
+          <span class="v" id="custoMaterial">R$ 0,00</span>
+        </div>
+        <div class="breakdown-row">
+          <span class="k">Energia consumida</span>
+          <span class="v" id="energiaKwh">0,000 kWh</span>
+        </div>
+        <div class="breakdown-row">
+          <span class="k">Custo de energia</span>
+          <span class="v" id="custoEnergia">R$ 0,00</span>
+        </div>
+        <div class="breakdown-row">
+          <span class="k">Depreciação da máquina</span>
+          <span class="v" id="custoDepreciacao">R$ 0,00</span>
+        </div>
+        <div class="breakdown-row total">
+          <span class="k">Custo total</span>
+          <span class="v" id="custoTotal">R$ 0,00</span>
+        </div>
+        <div class="breakdown-row">
+          <span class="k">Lucro aplicado</span>
+          <span class="v" id="valorLucro">R$ 0,00</span>
+        </div>
+      </div>
+
+      <div class="layer-meter">
+        <div class="layer-meter-label">
+          <span>composição do preço</span>
+        </div>
+        <div class="layer-bar">
+          <div class="seg seg-material" id="barMaterial" style="width:25%"></div>
+          <div class="seg seg-energy" id="barEnergy" style="width:25%"></div>
+          <div class="seg seg-depreciacao" id="barDepreciacao" style="width:25%"></div>
+          <div class="seg seg-lucro" id="barLucro" style="width:25%"></div>
+        </div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-dot" style="background:var(--filament);"></span>Material</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--cyan-dim);"></span>Energia</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--text-faint);"></span>Depreciação</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--cyan);"></span>Lucro</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer>peso × preço/kg&nbsp; + &nbsp;tempo × potência × tarifa&nbsp; + &nbsp;tempo × depreciação&nbsp; + &nbsp;margem de lucro</footer>
+
+</div>
+
+<script>
+  const peso = document.getElementById('peso');
+  const horas = document.getElementById('horas');
+  const minutos = document.getElementById('minutos');
+  const precoMaterial = document.getElementById('precoMaterial');
+  const lucro = document.getElementById('lucro');
+  const potencia = document.getElementById('potencia');
+  const precoKwh = document.getElementById('precoKwh');
+  const depreciacao = document.getElementById('depreciacao');
+
+  const precoFinalEl = document.getElementById('precoFinal');
+  const custoMaterialEl = document.getElementById('custoMaterial');
+  const energiaKwhEl = document.getElementById('energiaKwh');
+  const custoEnergiaEl = document.getElementById('custoEnergia');
+  const custoDepreciacaoEl = document.getElementById('custoDepreciacao');
+  const custoTotalEl = document.getElementById('custoTotal');
+  const valorLucroEl = document.getElementById('valorLucro');
+
+  const barMaterial = document.getElementById('barMaterial');
+  const barEnergy = document.getElementById('barEnergy');
+  const barDepreciacao = document.getElementById('barDepreciacao');
+  const barLucro = document.getElementById('barLucro');
+
+  function formatBRL(valor) {
+    return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function calcular() {
+    const pesoG = parseFloat(peso.value) || 0;
+    const h = parseFloat(horas.value) || 0;
+    const m = parseFloat(minutos.value) || 0;
+    const precoKg = parseFloat(precoMaterial.value) || 0;
+    const margem = parseFloat(lucro.value) || 0;
+    const watts = parseFloat(potencia.value) || 0;
+    const tarifa = parseFloat(precoKwh.value) || 0;
+    const deprecPorHora = parseFloat(depreciacao.value) || 0;
+
+    const tempoHoras = h + (m / 60);
+
+    // Custo do material
+    const custoMat = (pesoG / 1000) * precoKg;
+
+    // Energia gasta: potência (W) * tempo (h) / 1000 = kWh
+    const energiaConsumida = (watts * tempoHoras) / 1000;
+    const custoEnerg = energiaConsumida * tarifa;
+
+    // Depreciação da máquina pelo tempo de uso
+    const custoDeprec = deprecPorHora * tempoHoras;
+
+    const custoTotal = custoMat + custoEnerg + custoDeprec;
+    const valorLucro = custoTotal * (margem / 100);
+    const precoFinal = custoTotal + valorLucro;
+
+    precoFinalEl.textContent = formatBRL(precoFinal);
+    custoMaterialEl.textContent = formatBRL(custoMat);
+    energiaKwhEl.textContent = energiaConsumida.toFixed(3).replace('.', ',') + ' kWh';
+    custoEnergiaEl.textContent = formatBRL(custoEnerg);
+    custoDepreciacaoEl.textContent = formatBRL(custoDeprec);
+    custoTotalEl.textContent = formatBRL(custoTotal);
+    valorLucroEl.textContent = formatBRL(valorLucro);
+
+    // barra de composição
+    const total = custoMat + custoEnerg + custoDeprec + valorLucro;
+    if (total > 0) {
+      const pMat = (custoMat / total) * 100;
+      const pEnerg = (custoEnerg / total) * 100;
+      const pDeprec = (custoDeprec / total) * 100;
+      const pLucro = (valorLucro / total) * 100;
+      barMaterial.style.width = pMat + '%';
+      barEnergy.style.width = pEnerg + '%';
+      barDepreciacao.style.width = pDeprec + '%';
+      barLucro.style.width = pLucro + '%';
+    } else {
+      barMaterial.style.width = '25%';
+      barEnergy.style.width = '25%';
+      barDepreciacao.style.width = '25%';
+      barLucro.style.width = '25%';
+    }
+  }
+
+  [peso, horas, minutos, precoMaterial, lucro, potencia, precoKwh, depreciacao].forEach(el => {
+    el.addEventListener('input', calcular);
+  });
+
+  // toggle advanced fields
+  const toggleBtn = document.getElementById('toggleAdvanced');
+  const advancedFields = document.getElementById('advancedFields');
+  toggleBtn.addEventListener('click', () => {
+    advancedFields.classList.toggle('open');
+    toggleBtn.classList.toggle('open');
+  });
+
+  calcular();
+</script>
+
+</body>
+</html>
