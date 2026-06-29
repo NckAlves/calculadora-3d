@@ -646,7 +646,7 @@
     const custoRemun = remunPorHora * hTrabalho;
 
     const custoTotal = custoMat + custoEnerg + custoDeprec + custoRemun;
-    const valorLucro = custoTotal * (margem / 100);
+    const valorLucro = (custoTotal - custoRemun) * (margem / 100);
     const precoFinal = custoTotal + valorLucro;
 
     precoFinalEl.textContent = formatBRL(precoFinal);
