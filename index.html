@@ -380,6 +380,7 @@
   .seg-material { background: var(--filament); }
   .seg-energy { background: var(--cyan-dim); }
   .seg-depreciacao { background: var(--text-faint); }
+  .seg-remuneracao { background: var(--filament-dim); }
   .seg-lucro { background: var(--cyan); }
 
   .legend {
@@ -419,7 +420,7 @@
 <div class="stage">
 
   <header>
-    <div class="eyebrow">Orçamento de impressão</div>
+    <div class="eyebrow">orçamento de impressão</div>
     <h1>Calculadora de Impressão 3D</h1>
     <p>Informe o peso da peça e o tempo de impressão para calcular o custo de material, energia e o preço final de venda.</p>
   </header>
@@ -449,6 +450,14 @@
             <input type="number" id="minutos" inputmode="numeric" placeholder="0" min="0" max="59" step="1">
             <span class="unit">min</span>
           </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="horasTrabalho">Horas de trabalho <span class="hint">tempo dedicado ao projeto</span></label>
+        <div class="input-wrap">
+          <input type="number" id="horasTrabalho" inputmode="decimal" placeholder="0" min="0" step="0.1">
+          <span class="unit">h</span>
         </div>
       </div>
 
@@ -503,6 +512,15 @@
           </div>
         </div>
 
+        <div class="field preset">
+          <label for="remuneracao">Valor da hora trabalhada <span class="hint">remuneração</span></label>
+          <div class="input-wrap">
+            <span class="unit" style="border-left:none; border-right:1px solid var(--line);">R$</span>
+            <input type="number" id="remuneracao" inputmode="decimal" value="18.00" min="0" step="0.01">
+            <span class="unit">/ hora</span>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -528,6 +546,10 @@
           <span class="k">Depreciação da máquina</span>
           <span class="v" id="custoDepreciacao">R$ 0,00</span>
         </div>
+        <div class="breakdown-row">
+          <span class="k">Remuneração (trabalho)</span>
+          <span class="v" id="custoRemuneracao">R$ 0,00</span>
+        </div>
         <div class="breakdown-row total">
           <span class="k">Custo total</span>
           <span class="v" id="custoTotal">R$ 0,00</span>
@@ -543,15 +565,17 @@
           <span>composição do preço</span>
         </div>
         <div class="layer-bar">
-          <div class="seg seg-material" id="barMaterial" style="width:25%"></div>
-          <div class="seg seg-energy" id="barEnergy" style="width:25%"></div>
-          <div class="seg seg-depreciacao" id="barDepreciacao" style="width:25%"></div>
-          <div class="seg seg-lucro" id="barLucro" style="width:25%"></div>
+          <div class="seg seg-material" id="barMaterial" style="width:20%"></div>
+          <div class="seg seg-energy" id="barEnergy" style="width:20%"></div>
+          <div class="seg seg-depreciacao" id="barDepreciacao" style="width:20%"></div>
+          <div class="seg seg-remuneracao" id="barRemuneracao" style="width:20%"></div>
+          <div class="seg seg-lucro" id="barLucro" style="width:20%"></div>
         </div>
         <div class="legend">
           <div class="legend-item"><span class="legend-dot" style="background:var(--filament);"></span>Material</div>
           <div class="legend-item"><span class="legend-dot" style="background:var(--cyan-dim);"></span>Energia</div>
           <div class="legend-item"><span class="legend-dot" style="background:var(--text-faint);"></span>Depreciação</div>
+          <div class="legend-item"><span class="legend-dot" style="background:var(--filament-dim);"></span>Remuneração</div>
           <div class="legend-item"><span class="legend-dot" style="background:var(--cyan);"></span>Lucro</div>
         </div>
       </div>
@@ -559,7 +583,7 @@
 
   </div>
 
-  <footer>peso × preço/kg&nbsp; + &nbsp;tempo × potência × tarifa&nbsp; + &nbsp;tempo × depreciação&nbsp; + &nbsp;margem de lucro</footer>
+  <footer>peso × preço/kg&nbsp; + &nbsp;tempo × potência × tarifa&nbsp; + &nbsp;tempo × depreciação&nbsp; + &nbsp;horas trabalho × remuneração&nbsp; + &nbsp;margem de lucro</footer>
 
 </div>
 
@@ -567,23 +591,27 @@
   const peso = document.getElementById('peso');
   const horas = document.getElementById('horas');
   const minutos = document.getElementById('minutos');
+  const horasTrabalho = document.getElementById('horasTrabalho');
   const precoMaterial = document.getElementById('precoMaterial');
   const lucro = document.getElementById('lucro');
   const potencia = document.getElementById('potencia');
   const precoKwh = document.getElementById('precoKwh');
   const depreciacao = document.getElementById('depreciacao');
+  const remuneracao = document.getElementById('remuneracao');
 
   const precoFinalEl = document.getElementById('precoFinal');
   const custoMaterialEl = document.getElementById('custoMaterial');
   const energiaKwhEl = document.getElementById('energiaKwh');
   const custoEnergiaEl = document.getElementById('custoEnergia');
   const custoDepreciacaoEl = document.getElementById('custoDepreciacao');
+  const custoRemuneracaoEl = document.getElementById('custoRemuneracao');
   const custoTotalEl = document.getElementById('custoTotal');
   const valorLucroEl = document.getElementById('valorLucro');
 
   const barMaterial = document.getElementById('barMaterial');
   const barEnergy = document.getElementById('barEnergy');
   const barDepreciacao = document.getElementById('barDepreciacao');
+  const barRemuneracao = document.getElementById('barRemuneracao');
   const barLucro = document.getElementById('barLucro');
 
   function formatBRL(valor) {
@@ -594,11 +622,13 @@
     const pesoG = parseFloat(peso.value) || 0;
     const h = parseFloat(horas.value) || 0;
     const m = parseFloat(minutos.value) || 0;
+    const hTrabalho = parseFloat(horasTrabalho.value) || 0;
     const precoKg = parseFloat(precoMaterial.value) || 0;
     const margem = parseFloat(lucro.value) || 0;
     const watts = parseFloat(potencia.value) || 0;
     const tarifa = parseFloat(precoKwh.value) || 0;
     const deprecPorHora = parseFloat(depreciacao.value) || 0;
+    const remunPorHora = parseFloat(remuneracao.value) || 0;
 
     const tempoHoras = h + (m / 60);
 
@@ -612,7 +642,10 @@
     // Depreciação da máquina pelo tempo de uso
     const custoDeprec = deprecPorHora * tempoHoras;
 
-    const custoTotal = custoMat + custoEnerg + custoDeprec;
+    // Remuneração pelo tempo de trabalho dedicado ao projeto
+    const custoRemun = remunPorHora * hTrabalho;
+
+    const custoTotal = custoMat + custoEnerg + custoDeprec + custoRemun;
     const valorLucro = custoTotal * (margem / 100);
     const precoFinal = custoTotal + valorLucro;
 
@@ -621,29 +654,33 @@
     energiaKwhEl.textContent = energiaConsumida.toFixed(3).replace('.', ',') + ' kWh';
     custoEnergiaEl.textContent = formatBRL(custoEnerg);
     custoDepreciacaoEl.textContent = formatBRL(custoDeprec);
+    custoRemuneracaoEl.textContent = formatBRL(custoRemun);
     custoTotalEl.textContent = formatBRL(custoTotal);
     valorLucroEl.textContent = formatBRL(valorLucro);
 
     // barra de composição
-    const total = custoMat + custoEnerg + custoDeprec + valorLucro;
+    const total = custoMat + custoEnerg + custoDeprec + custoRemun + valorLucro;
     if (total > 0) {
       const pMat = (custoMat / total) * 100;
       const pEnerg = (custoEnerg / total) * 100;
       const pDeprec = (custoDeprec / total) * 100;
+      const pRemun = (custoRemun / total) * 100;
       const pLucro = (valorLucro / total) * 100;
       barMaterial.style.width = pMat + '%';
       barEnergy.style.width = pEnerg + '%';
       barDepreciacao.style.width = pDeprec + '%';
+      barRemuneracao.style.width = pRemun + '%';
       barLucro.style.width = pLucro + '%';
     } else {
-      barMaterial.style.width = '25%';
-      barEnergy.style.width = '25%';
-      barDepreciacao.style.width = '25%';
-      barLucro.style.width = '25%';
+      barMaterial.style.width = '20%';
+      barEnergy.style.width = '20%';
+      barDepreciacao.style.width = '20%';
+      barRemuneracao.style.width = '20%';
+      barLucro.style.width = '20%';
     }
   }
 
-  [peso, horas, minutos, precoMaterial, lucro, potencia, precoKwh, depreciacao].forEach(el => {
+  [peso, horas, minutos, horasTrabalho, precoMaterial, lucro, potencia, precoKwh, depreciacao, remuneracao].forEach(el => {
     el.addEventListener('input', calcular);
   });
 
