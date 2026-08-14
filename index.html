@@ -381,6 +381,7 @@
   .seg-energy { background: var(--cyan-dim); }
   .seg-depreciacao { background: var(--text-faint); }
   .seg-remuneracao { background: var(--filament-dim); }
+  .seg-token { background: #a78bfa; }
   .seg-lucro { background: var(--cyan); }
 
   .legend {
@@ -467,6 +468,14 @@
         </div>
       </div>
 
+      <div class="field">
+        <label for="token">Token <span class="hint">créditos consumidos</span></label>
+        <div class="input-wrap">
+          <input type="number" id="token" inputmode="numeric" placeholder="0" min="0" step="1">
+          <span class="unit">un</span>
+        </div>
+      </div>
+
       <hr class="divider">
 
       <button class="advanced-toggle" id="toggleAdvanced" type="button">
@@ -527,6 +536,15 @@
           </div>
         </div>
 
+        <div class="field preset">
+          <label for="precoToken">Valor do token <span class="hint">por unidade</span></label>
+          <div class="input-wrap">
+            <span class="unit" style="border-left:none; border-right:1px solid var(--line);">R$</span>
+            <input type="number" id="precoToken" inputmode="decimal" value="0.14" min="0" step="0.01">
+            <span class="unit">/ un</span>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -556,6 +574,10 @@
           <span class="k">Remuneração (trabalho)</span>
           <span class="v" id="custoRemuneracao">R$ 0,00</span>
         </div>
+        <div class="breakdown-row">
+          <span class="k">Custo dos tokens</span>
+          <span class="v" id="custoToken">R$ 0,00</span>
+        </div>
         <div class="breakdown-row total">
           <span class="k">Custo total</span>
           <span class="v" id="custoTotal">R$ 0,00</span>
@@ -575,6 +597,7 @@
           <div class="seg seg-energy" id="barEnergy" style="width:20%"></div>
           <div class="seg seg-depreciacao" id="barDepreciacao" style="width:20%"></div>
           <div class="seg seg-remuneracao" id="barRemuneracao" style="width:20%"></div>
+          <div class="seg seg-token" id="barToken" style="width:20%"></div>
           <div class="seg seg-lucro" id="barLucro" style="width:20%"></div>
         </div>
         <div class="legend">
@@ -582,6 +605,7 @@
           <div class="legend-item"><span class="legend-dot" style="background:var(--cyan-dim);"></span>Energia</div>
           <div class="legend-item"><span class="legend-dot" style="background:var(--text-faint);"></span>Depreciação</div>
           <div class="legend-item"><span class="legend-dot" style="background:var(--filament-dim);"></span>Remuneração</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#a78bfa;"></span>Token</div>
           <div class="legend-item"><span class="legend-dot" style="background:var(--cyan);"></span>Lucro</div>
         </div>
       </div>
@@ -589,7 +613,7 @@
 
   </div>
 
-  <footer>peso × preço/kg&nbsp; + &nbsp;tempo × potência × tarifa&nbsp; + &nbsp;tempo × depreciação&nbsp; + &nbsp;horas trabalho × remuneração&nbsp; + &nbsp;margem de lucro</footer>
+  <footer>peso × preço/kg&nbsp; + &nbsp;tempo × potência × tarifa&nbsp; + &nbsp;tempo × depreciação&nbsp; + &nbsp;horas trabalho × remuneração&nbsp; + &nbsp;tokens × valor/token&nbsp; + &nbsp;margem de lucro</footer>
 
 </div>
 
@@ -605,6 +629,8 @@
   const precoKwh = document.getElementById('precoKwh');
   const depreciacao = document.getElementById('depreciacao');
   const remuneracao = document.getElementById('remuneracao');
+  const token = document.getElementById('token');
+  const precoToken = document.getElementById('precoToken');
 
   const precoFinalEl = document.getElementById('precoFinal');
   const custoMaterialEl = document.getElementById('custoMaterial');
@@ -618,7 +644,9 @@
   const barMaterial = document.getElementById('barMaterial');
   const barEnergy = document.getElementById('barEnergy');
   const barDepreciacao = document.getElementById('barDepreciacao');
+  const custoTokenEl = document.getElementById('custoToken');
   const barRemuneracao = document.getElementById('barRemuneracao');
+  const barToken = document.getElementById('barToken');
   const barLucro = document.getElementById('barLucro');
 
   function formatBRL(valor) {
@@ -636,6 +664,8 @@
     const tarifa = parseFloat(precoKwh.value) || 0;
     const deprecPorHora = parseFloat(depreciacao.value) || 0;
     const remunPorHora = parseFloat(remuneracao.value) || 0;
+    const qtdToken = parseInt(token.value) || 0;
+    const vlrToken = parseFloat(precoToken.value) || 0;
 
     const tempoHoras = h + (m / 60);
 
@@ -652,7 +682,10 @@
     // Remuneração pelo tempo de trabalho dedicado ao projeto
     const custoRemun = remunPorHora * hTrabalho;
 
-    const custoTotal = custoMat + custoEnerg + custoDeprec + custoRemun;
+    // Custo dos tokens
+    const custoTok = qtdToken * vlrToken;
+
+    const custoTotal = custoMat + custoEnerg + custoDeprec + custoRemun + custoTok;
     const valorLucro = custoTotal * (margem / 100);
     const precoFinal = custoTotal + valorLucro;
 
@@ -662,32 +695,37 @@
     custoEnergiaEl.textContent = formatBRL(custoEnerg);
     custoDepreciacaoEl.textContent = formatBRL(custoDeprec);
     custoRemuneracaoEl.textContent = formatBRL(custoRemun);
+    custoTokenEl.textContent = formatBRL(custoTok);
     custoTotalEl.textContent = formatBRL(custoTotal);
     valorLucroEl.textContent = formatBRL(valorLucro);
 
     // barra de composição
-    const total = custoMat + custoEnerg + custoDeprec + custoRemun + valorLucro;
+    const total = custoMat + custoEnerg + custoDeprec + custoRemun + custoTok + valorLucro;
     if (total > 0) {
       const pMat = (custoMat / total) * 100;
       const pEnerg = (custoEnerg / total) * 100;
       const pDeprec = (custoDeprec / total) * 100;
       const pRemun = (custoRemun / total) * 100;
+      const pTok = (custoTok / total) * 100;
       const pLucro = (valorLucro / total) * 100;
       barMaterial.style.width = pMat + '%';
       barEnergy.style.width = pEnerg + '%';
       barDepreciacao.style.width = pDeprec + '%';
       barRemuneracao.style.width = pRemun + '%';
+      barToken.style.width = pTok + '%';
       barLucro.style.width = pLucro + '%';
     } else {
-      barMaterial.style.width = '20%';
-      barEnergy.style.width = '20%';
-      barDepreciacao.style.width = '20%';
-      barRemuneracao.style.width = '20%';
-      barLucro.style.width = '20%';
+      const sixth = (100/6).toFixed(2) + '%';
+      barMaterial.style.width = sixth;
+      barEnergy.style.width = sixth;
+      barDepreciacao.style.width = sixth;
+      barRemuneracao.style.width = sixth;
+      barToken.style.width = sixth;
+      barLucro.style.width = sixth;
     }
   }
 
-  [peso, horas, minutos, horasTrabalho, minutosTrabalho, precoMaterial, lucro, potencia, precoKwh, depreciacao, remuneracao].forEach(el => {
+  [peso, horas, minutos, horasTrabalho, minutosTrabalho, token, precoMaterial, lucro, potencia, precoKwh, depreciacao, remuneracao, precoToken].forEach(el => {
     el.addEventListener('input', calcular);
   });
 
